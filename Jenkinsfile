@@ -14,6 +14,7 @@ pipeline {
                     echo "Содержимое рабочей директории:"
                     ls -lh
                 '''
+                sh 'exit 1'
                 echo "URL базы данных: ${DB_URL}"
                 echo "DISABLE_AUTH: ${DISABLE_AUTH}"
                 echo "Запуск задачи с номером сборки: ${env.BUILD_NUMBER} на ${env.JENKINS_URL}"
@@ -77,4 +78,4 @@ pipeline {
             echo 'Это будет выполняться, если предыдущий запуск был провальным, а сейчас успешный'
         }
     }
-
+}
