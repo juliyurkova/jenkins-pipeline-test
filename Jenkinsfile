@@ -1,81 +1,55 @@
 pipeline {
     agent any
-    
-    environment {
-        DB_URL = 'mysql+pmysql://usr:ptwd@host:3306/db'
-        DISABLE_AUTH = true
-    }
-    
+
     stages {
+        stage('Получение кода') {
+            steps {
+                git branch: 'main', url: 'https://github.com/juliyurkova/jenkins-pipeline-test.git'
+            }
+        }
         stage('Сборка') {
             steps {
-                echo 'Сборка приложения...'
-                sh '''
-                    echo "Содержимое рабочей директории:"
-                    ls -lh
-                '''
+                echo "Сборка приложения..."
                 sh 'exit 1'
-                echo "URL базы данных: ${DB_URL}"
-                echo "DISABLE_AUTH: ${DISABLE_AUTH}"
-                echo "Запуск задачи с номером сборки: ${env.BUILD_NUMBER} на ${env.JENKINS_URL}"
             }
         }
-        
         stage('Тестирование') {
             steps {
-                echo 'Тестирование приложения...'
-                sh 'echo "Запуск тестов..."'
-                sh 'echo "Все тесты пройдены успешно!"'
+                echo "Тестирование приложения..."
             }
         }
-        
         stage('Деплой на стейджинг') {
             steps {
-                echo 'Проверка наличия команд...'
-                sh 'which chmod || echo "chmod not found"'
-                echo 'Деплой на стейджинг...'
-                sh 'chmod +x deploy'
+                sh 'chmod u+x deploy smoke-tests'
                 sh './deploy staging'
-            }
-        }
-        
-        stage('Проверка работоспособности') {
-            steps {
-                echo 'Запуск дымовых тестов...'
-                sh 'chmod +x smoke-tests'
                 sh './smoke-tests'
             }
         }
-        
         stage('Деплой на продакшн') {
             steps {
-                echo 'Деплой на продакшн...'
                 sh './deploy production'
             }
         }
     }
-    
+
     post {
         always {
-            echo 'Этот блок выполняется всегда, независимо от статуса завершения'
+            echo "Пайплайн завершён"
         }
         success {
-            echo 'Этот блок выполняется, если сборка успешна'
+            echo "Пайплайн завершён успешно"
+            mail to: 'julia17yurkova@mail.ru',
+                 subject: "${env.JOB_NAME} - Сборка № ${env.BUILD_NUMBER} УСПЕШНА",
+                 body: "Пайплайн успешно завершён. Ссылка: ${env.BUILD_URL}"
         }
         failure {
-            echo 'Этот блок выполняется, если задача провалилась'
-            mail to: 'julia17yurkova@mail.ru',
-                 subject: "${env.JOB_NAME} - Сборка № ${env.BUILD_NUMBER} провалилась",
-                 body: "Для получения дополнительной информации о провале пайплайна, проверьте консольный вывод по адресу ${env.BUILD_URL}"
+            echo "Пайплайн провален"
+            mail to: 'ваша_почта@mail.ru',
+                 subject: "${env.JOB_NAME} - Сборка № ${env.BUILD_NUMBER} ПРОВАЛЕНА",
+                 body: "Пайплайн завершился с ошибкой. Проверьте: ${env.BUILD_URL}"
         }
-        unstable {
-            echo "Это будет выполняться, если статус завершения был 'нестабильный'"
-        }
-        changed {
-            echo 'Это будет выполняться, если состояние пайплайна изменилось'
-        }
-        fixed {
-            echo 'Это будет выполняться, если предыдущий запуск был провальным, а сейчас успешный'
+        cleanup {
+            cleanWs()
         }
     }
 }
